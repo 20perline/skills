@@ -4,6 +4,8 @@
 所有接口均为异步任务模式：先提交任务获取 task_id，再轮询获取结果。
 """
 
+from __future__ import annotations
+
 import json
 import ssl
 import sys

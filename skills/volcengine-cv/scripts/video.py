@@ -42,6 +42,10 @@ CAMERA_TEMPLATES = [
     "rapid_push_pull",
 ]
 
+CAMERA_STRENGTHS = {"weak", "medium", "strong"}
+FRAME_COUNTS = {121, 241}
+ASPECT_RATIOS = {"16:9", "4:3", "1:1", "3:4", "9:16", "21:9"}
+
 MODE_REQ_KEY = {
     "t2v": "jimeng_t2v_v30",
     "i2v-first": "jimeng_i2v_first_v30",
@@ -153,15 +157,23 @@ def build_body(task: dict) -> dict:
         strength = task.get("camera_strength")
         if not strength:
             raise ValueError("运镜模式需要 camera_strength")
+        if strength not in CAMERA_STRENGTHS:
+            raise ValueError(f"无效的运镜强度 '{strength}'")
         body["camera_strength"] = strength
 
     # 通用可选参数
-    if mode == "t2v" and task.get("aspect_ratio"):
-        body["aspect_ratio"] = task["aspect_ratio"]
+    aspect_ratio = task.get("aspect_ratio")
+    if mode == "t2v" and aspect_ratio:
+        if aspect_ratio not in ASPECT_RATIOS:
+            raise ValueError(f"无效的视频宽高比 '{aspect_ratio}'")
+        body["aspect_ratio"] = aspect_ratio
     if task.get("seed") is not None:
         body["seed"] = task["seed"]
-    if task.get("frames"):
-        body["frames"] = task["frames"]
+    frames = task.get("frames")
+    if frames is not None:
+        if frames not in FRAME_COUNTS:
+            raise ValueError(f"无效的视频帧数 '{frames}'")
+        body["frames"] = frames
 
     return body
 
@@ -364,7 +376,7 @@ def main():
     parser.add_argument(
         "mode",
         nargs="?",
-        choices=["t2v", "i2v-first", "i2v-first-tail", "i2v-camera"],
+        choices=list(MODE_REQ_KEY),
         help="视频生成模式 (单任务模式)",
     )
     parser.add_argument("prompt", nargs="?", help="生成视频的提示词 (单任务模式)")
@@ -381,13 +393,22 @@ def main():
 
     # 运镜参数
     parser.add_argument("--template-id", metavar="ID", help="运镜模板 ID (运镜模式)")
-    parser.add_argument("--camera-strength", choices=["weak", "medium", "strong"], help="运镜强度 (运镜模式)")
+    parser.add_argument(
+        "--camera-strength",
+        choices=sorted(CAMERA_STRENGTHS),
+        help="运镜强度 (运镜模式)",
+    )
 
     # 通用选项
-    parser.add_argument("--frames", type=int, choices=[121, 241], help="帧数: 121(5s) 或 241(10s)")
+    parser.add_argument(
+        "--frames",
+        type=int,
+        choices=sorted(FRAME_COUNTS),
+        help="帧数: 121(5s) 或 241(10s)",
+    )
     parser.add_argument(
         "--aspect-ratio",
-        choices=["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"],
+        choices=sorted(ASPECT_RATIOS),
         help="视频宽高比 (仅文生视频)",
     )
     parser.add_argument("--seed", type=int, help="随机种子 (-1 为随机)")
