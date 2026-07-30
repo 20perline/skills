@@ -22,8 +22,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+from api import poll_task, submit_task
 from auth import load_credentials
-from api import submit_task, poll_task
 
 # 批量模式下，两个任务之间的等待间隔（秒）
 BATCH_TASK_INTERVAL = 2
@@ -58,13 +58,15 @@ def download_file(url: str, output_path: str) -> None:
     """从 URL 下载文件到本地。"""
     req = urllib.request.Request(url)
     ctx = ssl.create_default_context()
-    with urllib.request.urlopen(req, timeout=300, context=ctx) as resp:
-        with open(output_path, "wb") as f:
-            while True:
-                chunk = resp.read(8192)
-                if not chunk:
-                    break
-                f.write(chunk)
+    with (
+        urllib.request.urlopen(req, timeout=300, context=ctx) as resp,
+        open(output_path, "wb") as f,
+    ):
+        while True:
+            chunk = resp.read(8192)
+            if not chunk:
+                break
+            f.write(chunk)
 
 
 def read_image_as_base64(file_path: str) -> str:
